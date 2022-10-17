@@ -35,6 +35,7 @@ X_FRAME_OPTIONS = '*'
 # Application definition
 
 INSTALLED_APPS = [
+    'corsheaders',
     'ecommerce.apps.EcommerceConfig',
     'rest_framework',
     'django.contrib.admin',
@@ -46,6 +47,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -109,7 +111,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/3.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'pt-br'
 
 TIME_ZONE = 'UTC'
 
@@ -135,7 +137,7 @@ ALLOWED_HOSTS = ['*']
 X_FRAME_OPTIONS = '*'
 
 CORS_ALLOWED_ORIGINS = [
-    "https://vue-examples.robsonjoo.repl.co"
+    "https://nuxt-example.robsonjoo.repl.co"
 ]
 
 #Configuração de upload
