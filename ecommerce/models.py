@@ -48,6 +48,10 @@ class Sala(models.Model):
   class Meta:
       verbose_name = "Sala"
       verbose_name_plural = "Salas"
+    
+  @property
+  def sessoes(self):
+    return Sessao.objects.filter(sala=self)    
 
 
 class Duvida(models.Model):

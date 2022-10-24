@@ -38,7 +38,7 @@ class FilmeSerializer(serializers.ModelSerializer):
   atores = AtorSerializer(many=True, read_only=True)  
   class Meta:
     model = Filme
-    fields = ['id', 'titulo', 'descricao', 'sinopse', 'atores']
+    fields = ['id', 'titulo', 'descricao', 'sinopse', 'atores', 'fotoCapa']
 
 class FilmeViewSet(viewsets.ReadOnlyModelViewSet):
   queryset = Filme.objects.all().order_by('titulo')
