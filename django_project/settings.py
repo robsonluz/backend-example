@@ -137,7 +137,8 @@ ALLOWED_HOSTS = ['*']
 X_FRAME_OPTIONS = '*'
 
 CORS_ALLOWED_ORIGINS = [
-    "https://nuxt-example.robsonjoo.repl.co"
+    "https://nuxt-example.robsonjoo.repl.co",
+    "http://localhost:8080"
 ]
 
 #Configuração de upload
