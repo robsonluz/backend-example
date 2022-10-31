@@ -48,6 +48,25 @@ class FilmeSerializer(serializers.ModelSerializer):
 class FilmeViewSet(viewsets.ReadOnlyModelViewSet):
   queryset = Filme.objects.all().order_by('titulo')
   serializer_class = FilmeSerializer 
+  def get_queryset(self):
+    """
+    Filtra filme por titulo e ator
+    """
+    queryset = Filme.objects.all().order_by('titulo')
+    query = {}
+
+    titulo = self.request.query_params.get('titulo', None)
+    if titulo is not None:
+      query['titulo'] = titulo
+
+
+    ator = self.request.query_params.get('ator', None)  
+    if ator is not None:
+      query['atores'] = ator
+
+    print(query)
+    queryset = queryset.filter(**query)    
+    return queryset  
 ######################################################
 
 #### Sala ########################################
