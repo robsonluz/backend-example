@@ -141,7 +141,5 @@ importlib-metadata = []
 markdown = []
 pytz = []
 sqlparse = []
-todo = [
-    {file = "todo-0.1.tar.gz", hash = "sha256:19c46d1e7b01f94dfc055560d8de6165c6e4e16c569c5a091e9ad216e2f4fd2a"},
-]
+todo = []
 zipp = []
