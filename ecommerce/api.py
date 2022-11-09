@@ -9,12 +9,22 @@ from django.db import transaction
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login, logout
 
+
+import os
+
+# SDK do Mercado Pago
+import mercadopago
+# Adicione as credenciais
+sdk = mercadopago.SDK(os.environ['mercadopagotoken'])
+
 from ecommerce.models import Cidade
 from ecommerce.models import Filme
 from ecommerce.models import Ator
 from ecommerce.models import Sala
 from ecommerce.models import Sessao
 from ecommerce.models import Usuario
+from ecommerce.models import Item
+from ecommerce.models import Pedido
 
 #### Cidades ########################################
 class CidadeSerializer(serializers.ModelSerializer):
@@ -43,7 +53,7 @@ class FilmeSerializer(serializers.ModelSerializer):
   atores = AtorSerializer(many=True, read_only=True)  
   class Meta:
     model = Filme
-    fields = ['id', 'titulo', 'descricao', 'sinopse', 'atores', 'fotoCapa']
+    fields = ['id', 'titulo', 'descricao', 'sinopse', 'atores', 'fotoCapa', 'valor']
 
 class FilmeViewSet(viewsets.ReadOnlyModelViewSet):
   queryset = Filme.objects.all().order_by('titulo')
@@ -187,6 +197,122 @@ class LogoutViewSet(ViewSet):
   
 
 
+
+
+
+
+
+############ Pedidos, Carrinho de compras ###########
+class ItemSerializer(serializers.ModelSerializer):
+    filme: FilmeSerializer()
+    class Meta:
+        model = Item
+        depth = 2
+        fields = ['id', 'valor', 'filme']
+
+class PedidoSerializer(serializers.ModelSerializer):
+    itens = ItemSerializer(many=True)
+    class Meta:
+        model = Pedido
+        depth = 2
+        fields = ['id', 'finalizado', 'valorTotal', 'itens', 'urlPagamento','pago']
+
+class PedidoViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PedidoSerializer      
+    def get_queryset(self):
+      #filtra apenas os pedidos do usuário logado
+      return Pedido.objects.filter(usuario = Usuario.objects.filter(user = self.request.user)[0], finalizado = True)    
+
+class CarrinhoViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = PedidoSerializer      
+    def get_queryset(self):
+      #filtra apenas os pedidos do usuário logado
+      return Pedido.objects.filter(usuario = Usuario.objects.filter(user = self.request.user)[0], finalizado = False)          
+
+class CreateItemSerializer(serializers.ModelSerializer):
+    filme: FilmeSerializer()
+    class Meta:
+        model = Item
+        fields = ['id', 'filme', 'pedido']
+
+class CreateItemPedidoViewSet(mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+  serializer_class = CreateItemSerializer   
+  queryset = Item.objects.all()
+
+  def perform_create(self, serializer):
+    #procura o pedido aberto
+    pedidosAbertos = Pedido.objects.filter(finalizado = False, usuario = Usuario.objects.filter(user = self.request.user)[0])    
+    if(len(pedidosAbertos) > 0):
+      pedidoAberto = pedidosAbertos[0]
+    else:
+      #caso nao exista um pedido aberto ele cria um
+      pedidoAberto = Pedido.objects.create(usuario = Usuario.objects.filter(user = self.request.user)[0], finalizado = False)
+    serializer.save(pedido = pedidoAberto) 
+
+
+
+class FinalizarPedidoViewSet(ViewSet):
+  @staticmethod
+  def create(request: Request) -> Response:
+      print("chegou aqui no finalizar")
+      id = request.data.get('id')
+      print(id)
+      pedidos = Pedido.objects.filter(id = id)
+      if(len(pedidos) > 0):
+        pedido = pedidos[0]
+
+        items = []
+        for item in pedido.itens:
+          items.append({
+            "title": item.filme.titulo,
+            "quantity": 1,
+            "unit_price": float(item.valor)
+          })
+
+        url="https://testedjango.robsonjoo.repl.co/api/pagamento/?pedido=" + str(request.data.get('id'))
+
+        # Cria um item na preferência
+        preference_data = {
+          "items": items,
+          "external_reference": str(id),
+          "notification_url": url,
+        }
+
+        print(preference_data)
+    
+        preference_response = sdk.preference().create(preference_data)
+        preference = preference_response["response"]
+        print(preference)
+        print(preference['sandbox_init_point'])
+        pedido.urlPagamento = str(preference['sandbox_init_point'])
+        pedido.finalizado = True
+        Pedido.save(pedido)   
+        return JsonResponse({"id": pedido.id, "urlPagamento": pedido.urlPagamento})
+      return JsonResponse({})
+
+
+
+class PagamentoViewSet(ViewSet):
+  @staticmethod
+  def create(request: Request) -> Response:
+      pedidoId = request.query_params.get('pedido', None)
+      if pedidoId is not None:
+        pedidos = Pedido.objects.filter(id = pedidoId)
+        if(len(pedidos) > 0):
+          pedido = pedidos[0]
+          pedido.pago = True
+          Pedido.save(pedido)
+          
+      return JsonResponse({})    
+    
+####################################################################   
+
+
+
+
+
+
+
 # Routers provide an easy way of automatically determining the URL conf.
 router = routers.DefaultRouter()
 router.register(r'cidades', CidadeViewSet)
@@ -203,3 +329,11 @@ router.register(r'login', LoginViewSet, basename="Login")
 router.register(r'logout', LogoutViewSet, basename="Logout")
 router.register(r'user-registration', UserRegistrationViewSet, basename="User")
 router.register(r'usuarios-create', CreateUsuarioViewSet)
+
+
+# Rotas do pedido
+router.register(r'pedidos', PedidoViewSet, basename='Pedidos')
+router.register(r'carrinho', CarrinhoViewSet, basename='Carrinho')
+router.register(r'item-pedido-create', CreateItemPedidoViewSet)
+router.register(r'pedido-finalizar', FinalizarPedidoViewSet, basename='PedidoFinalizar')
+router.register(r'pagamento', PagamentoViewSet, basename='Pagamento')

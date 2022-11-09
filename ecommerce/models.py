@@ -104,8 +104,8 @@ class Pedido(models.Model):
     return reduce(lambda x, y: x + y, list(map(lambda item: item.valor, itens)), 0)
 
 class Item(models.Model):
-  pedido = models.ForeignKey(Pedido, on_delete=models.PROTECT, verbose_name="Pedido", null=True)
   filme = models.ForeignKey(Filme, on_delete=models.PROTECT, verbose_name="Filme", null=True)
+  pedido = models.ForeignKey(Pedido, on_delete=models.PROTECT, verbose_name="Pedido", null=True)
 
   @property
   def valor(self):

@@ -15,5 +15,6 @@ djangorestframework = "^3.14.0"
 django-filter = "^22.1"
 django-cors-headers = "^3.13.0"
 Markdown = "^3.4.1"
+mercadopago = "2.2.0"
 todo = "^0.1"
 [tool.poetry.dev-dependencies]
